@@ -1,0 +1,40 @@
+{
+	"name": "ds_oro_Dim_Empresa_Sedem",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Destino_DataWareH",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "id_empresa_sedem",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "empresa_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "nombre_empresa",
+				"type": "nvarchar"
+			},
+			{
+				"name": "actividad_economica",
+				"type": "nvarchar"
+			},
+			{
+				"name": "estado",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "oro",
+			"table": "Dim_Empresa_Sedem"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,67 @@
+{
+	"name": "ds_plata_sedem_inventario",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Destino_DataWareH",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "inventario_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "empresa_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "producto_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "nro_lote",
+				"type": "nvarchar"
+			},
+			{
+				"name": "cantidad_producida",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "cantidad_despachada",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "cantidad_disponible",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "estado",
+				"type": "nvarchar"
+			},
+			{
+				"name": "fecha_ultimo_movimiento",
+				"type": "date"
+			},
+			{
+				"name": "almacen",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "silver",
+			"table": "sedem_inventario"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

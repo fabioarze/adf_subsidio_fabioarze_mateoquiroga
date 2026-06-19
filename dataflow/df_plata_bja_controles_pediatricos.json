@@ -1,0 +1,111 @@
+{
+	"name": "df_plata_bja_controles_pediatricos",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "ci"
+				},
+				{
+					"name": "fechaControl"
+				},
+				{
+					"name": "initCap"
+				},
+				{
+					"name": "resultado"
+				},
+				{
+					"name": "vacunaAplicada"
+				},
+				{
+					"name": "trim"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          control_pediatrico_id as string,",
+				"          ci_nino as string,",
+				"          ci_madre as string,",
+				"          establecimiento_id as string,",
+				"          nro_control as string,",
+				"          fecha_control as string,",
+				"          peso_nino_kg as string,",
+				"          talla_nino_cm as string,",
+				"          vacuna_aplicada as string,",
+				"          resultado as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'bja_controles_pediatricos',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"trim derive(ci_nino = concat(     replace(regexReplace(regexReplace(trim(ci_nino), '[a-zA-Z]', ''), '-', ''), ' ', ''),     upper(regexReplace(trim(ci_nino), '[0-9\\\\s\\\\-]', '')) ),",
+				"          ci_madre = concat(     replace(regexReplace(regexReplace(trim(ci_madre), '[a-zA-Z]', ''), '-', ''), ' ', ''),     upper(regexReplace(trim(ci_madre), '[0-9\\\\s\\\\-]', '')) )) ~> ci",
+				"ci derive(fecha_control = coalesce(     toDate(fecha_control, 'yyyy-MM-dd'),     toDate(fecha_control, 'dd-MM-yyyy'),     toDate(fecha_control, 'MM/dd/yyyy'),     toDate(fecha_control, 'dd/MM/yyyy'),     toDate(fecha_control, 'yyyy/MM/dd') )) ~> fechaControl",
+				"fechaControl derive(vacuna_aplicada = initCap(vacuna_aplicada),",
+				"          resultado = initCap(resultado)) ~> initCap",
+				"initCap derive(resultado = iif(isNull(resultado) || resultado == 'NULL' || trim(resultado) == '' || lower(trim(resultado)) == 'nrmal' || lower(trim(resultado)) == 'norml', toString('Normal'), iif(lower(trim(resultado)) == 'bajo eso' || lower(trim(resultado)) == 'bajo eso ', toString('Bajo Peso'), iif(lower(trim(resultado)) == 'desnutriicón leve' || lower(trim(resultado)) == 'desnutrición lvee' || lower(trim(resultado)) == 'desnutrición leve', toString('Desnutrición Leve'), toString(initCap(trim(resultado))))))) ~> resultado",
+				"resultado derive(vacuna_aplicada = iif(isNull(vacuna_aplicada) || vacuna_aplicada == 'NULL' || trim(vacuna_aplicada) == '', toString(''), toString(trim(vacuna_aplicada)))) ~> vacunaAplicada",
+				"source1 derive(control_pediatrico_id = trim(control_pediatrico_id),",
+				"          ci_nino = trim(ci_nino),",
+				"          ci_madre = trim(ci_madre),",
+				"          establecimiento_id = trim(establecimiento_id),",
+				"          nro_control = trim(nro_control),",
+				"          fecha_control = trim(fecha_control),",
+				"          peso_nino_kg = trim(peso_nino_kg),",
+				"          talla_nino_cm = trim(talla_nino_cm),",
+				"          vacuna_aplicada = trim(vacuna_aplicada),",
+				"          resultado = trim(resultado)) ~> trim",
+				"vacunaAplicada window(over(control_pediatrico_id),",
+				"     asc(control_pediatrico_id, true),",
+				"     Fila = rowNumber()) ~> window1",
+				"window1 filter(Fila == 1) ~> filter1",
+				"filter1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'bja_controles_pediatricos',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     truncate: true,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

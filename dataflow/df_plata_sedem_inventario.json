@@ -1,0 +1,102 @@
+{
+	"name": "df_plata_sedem_inventario",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "trim"
+				},
+				{
+					"name": "initCap"
+				},
+				{
+					"name": "fechas"
+				},
+				{
+					"name": "almacen"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          inventario_id as string,",
+				"          empresa_id as string,",
+				"          producto_id as string,",
+				"          nro_lote as string,",
+				"          cantidad_producida as string,",
+				"          cantidad_despachada as string,",
+				"          cantidad_disponible as string,",
+				"          estado as string,",
+				"          fecha_ultimo_movimiento as string,",
+				"          almacen as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'sedem_inventario',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(inventario_id = trim(inventario_id),",
+				"          empresa_id = trim(empresa_id),",
+				"          producto_id = trim(producto_id),",
+				"          nro_lote = trim(nro_lote),",
+				"          cantidad_producida = trim(cantidad_producida),",
+				"          cantidad_despachada = trim(cantidad_despachada),",
+				"          cantidad_disponible = trim(cantidad_disponible),",
+				"          estado = trim(estado),",
+				"          fecha_ultimo_movimiento = trim(fecha_ultimo_movimiento),",
+				"          almacen = trim(almacen)) ~> trim",
+				"trim derive(estado = initCap(estado),",
+				"          almacen = initCap(almacen)) ~> initCap",
+				"initCap derive(fecha_ultimo_movimiento = iif(isNull(fecha_ultimo_movimiento) || fecha_ultimo_movimiento == 'NULL' || trim(fecha_ultimo_movimiento) == '', toString(''), toString(coalesce(toDate(fecha_ultimo_movimiento, 'yyyy-MM-dd'), toDate(fecha_ultimo_movimiento, 'dd-MM-yyyy'), toDate(fecha_ultimo_movimiento, 'MM/dd/yyyy'), toDate(fecha_ultimo_movimiento, 'dd/MM/yyyy'), toDate(fecha_ultimo_movimiento, 'yyyy/MM/dd'))))) ~> fechas",
+				"fechas derive(almacen = iif(isNull(almacen) || almacen == 'NULL' || trim(almacen) == '', toString(''), regexReplace(regexReplace(trim(almacen), '(?i)almaén', 'Almacén'), '(?i)alacén', 'Almacén'))) ~> almacen",
+				"almacen window(over(inventario_id),",
+				"     asc(inventario_id, true),",
+				"     Fila = rowNumber()) ~> window1",
+				"window1 filter(Fila == 1) ~> filter1",
+				"filter1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'sedem_inventario',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     truncate: true,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

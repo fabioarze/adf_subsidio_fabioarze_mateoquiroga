@@ -1,0 +1,91 @@
+{
+	"name": "df_gold_hechos_controles",
+	"properties": {
+		"folder": {
+			"name": "Gold"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_plata_bja_controles",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_oro_Hechos_Controles",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "aggregate1"
+				},
+				{
+					"name": "derivedColumn1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          control_prenatal_id as integer,",
+				"          ci_beneficiaria as string,",
+				"          establecimiento_id as integer,",
+				"          nro_control as integer,",
+				"          fecha_control as date,",
+				"          semana_gestacion as integer,",
+				"          peso_madre_kg as decimal(5,2),",
+				"          presion_arterial as string,",
+				"          resultado as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 aggregate(groupBy(control_prenatal_id),",
+				"     ci_beneficiaria = first(ci_beneficiaria),",
+				"          fecha_control = first(fecha_control),",
+				"          establecimiento_id = first(establecimiento_id),",
+				"          semana_gestacion = first(semana_gestacion),",
+				"          peso_madre_kg = first(peso_madre_kg)) ~> aggregate1",
+				"aggregate1 derive(sistema = 'BJA') ~> derivedColumn1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id_control as integer,",
+				"          ci_beneficiaria as string,",
+				"          id_establecimiento as integer,",
+				"          id_fecha as date,",
+				"          nro_control as integer,",
+				"          semana_gestacion as integer,",
+				"          peso_madre_kg as decimal(5,2),",
+				"          presion_arterial as string,",
+				"          resultado as string,",
+				"          sistema as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          ci_beneficiaria,",
+				"          id_establecimiento = establecimiento_id,",
+				"          id_fecha = fecha_control,",
+				"          semana_gestacion,",
+				"          peso_madre_kg,",
+				"          sistema",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

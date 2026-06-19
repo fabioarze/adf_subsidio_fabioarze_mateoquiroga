@@ -1,0 +1,78 @@
+{
+	"name": "ds_plata_sedem_produccion",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Destino_DataWareH",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "produccion_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "empresa_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "planta_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "producto_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "nro_lote",
+				"type": "nvarchar"
+			},
+			{
+				"name": "fecha_produccion",
+				"type": "date"
+			},
+			{
+				"name": "cantidad",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "unidad",
+				"type": "nvarchar"
+			},
+			{
+				"name": "turno",
+				"type": "nvarchar"
+			},
+			{
+				"name": "responsable",
+				"type": "nvarchar"
+			},
+			{
+				"name": "costo_produccion",
+				"type": "decimal",
+				"precision": 12,
+				"scale": 2
+			},
+			{
+				"name": "estado",
+				"type": "nvarchar"
+			},
+			{
+				"name": "fecha_vencimiento",
+				"type": "date"
+			}
+		],
+		"typeProperties": {
+			"schema": "silver",
+			"table": "sedem_produccion"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

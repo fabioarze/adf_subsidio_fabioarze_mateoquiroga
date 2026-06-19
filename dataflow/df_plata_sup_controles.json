@@ -1,0 +1,82 @@
+{
+	"name": "df_plata_sup_controles",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "trim"
+				},
+				{
+					"name": "ci"
+				},
+				{
+					"name": "fechas"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          control_id as string,",
+				"          ci_beneficiaria as string,",
+				"          establecimiento_id as string,",
+				"          nro_control as string,",
+				"          fecha_control as string,",
+				"          semana_gestacion as string,",
+				"          peso_madre_kg as string,",
+				"          presion_arterial as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'controles',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(control_id = trim(control_id),",
+				"          ci_beneficiaria = trim(ci_beneficiaria),",
+				"          establecimiento_id = trim(establecimiento_id),",
+				"          nro_control = trim(nro_control),",
+				"          fecha_control = trim(fecha_control),",
+				"          semana_gestacion = trim(semana_gestacion),",
+				"          peso_madre_kg = trim(peso_madre_kg),",
+				"          presion_arterial = trim(presion_arterial)) ~> trim",
+				"trim derive(ci_beneficiaria = concat(     replace(regexReplace(regexReplace(trim(ci_beneficiaria), '[a-zA-Z]', ''), '-', ''), ' ', ''),     upper(regexReplace(trim(ci_beneficiaria), '[0-9\\\\s\\\\-]', '')) )) ~> ci",
+				"ci derive(fecha_control = iif(isNull(fecha_control) || fecha_control == 'NULL' || trim(fecha_control) == '', toString(''), toString(coalesce(toDate(fecha_control, 'yyyy-MM-dd'), toDate(fecha_control, 'dd-MM-yyyy'), toDate(fecha_control, 'MM/dd/yyyy'), toDate(fecha_control, 'dd/MM/yyyy'), toDate(fecha_control, 'yyyy/MM/dd'))))) ~> fechas",
+				"fechas sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'controles',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

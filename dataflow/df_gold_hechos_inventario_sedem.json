@@ -1,0 +1,87 @@
+{
+	"name": "df_gold_hechos_inventario_sedem",
+	"properties": {
+		"folder": {
+			"name": "Gold"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_plata_sedem_inventario",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_oro_Hechos_Inventario_Manua",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "aggregate1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          inventario_id as integer,",
+				"          empresa_id as integer,",
+				"          producto_id as integer,",
+				"          nro_lote as string,",
+				"          cantidad_producida as decimal(10,2),",
+				"          cantidad_despachada as decimal(10,2),",
+				"          cantidad_disponible as decimal(10,2),",
+				"          estado as string,",
+				"          fecha_ultimo_movimiento as date,",
+				"          almacen as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 aggregate(groupBy(inventario_id),",
+				"     empresa_id = first(empresa_id),",
+				"          producto_id = first(producto_id),",
+				"          nro_lote = first(nro_lote),",
+				"          cantidad_producida = first(cantidad_producida),",
+				"          cantidad_despachada = first(cantidad_despachada),",
+				"          cantidad_disponible = first(cantidad_disponible),",
+				"          estado = first(estado),",
+				"          fecha_ultimo_movimiento = first(fecha_ultimo_movimiento),",
+				"          almacen = first(almacen)) ~> aggregate1",
+				"aggregate1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id_movimiento as integer,",
+				"          id_empresa_sedem as integer,",
+				"          id_fecha as date,",
+				"          tipo_movimiento as string,",
+				"          cantidad_unidades as integer,",
+				"          monto_estimado_bs as decimal(10,2),",
+				"          lote_referencia as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          id_empresa_sedem = empresa_id,",
+				"          id_fecha = fecha_ultimo_movimiento,",
+				"          tipo_movimiento = estado,",
+				"          cantidad_unidades = cantidad_disponible",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

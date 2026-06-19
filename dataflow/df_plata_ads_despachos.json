@@ -1,0 +1,103 @@
+{
+	"name": "df_plata_ads_despachos",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "trim"
+				},
+				{
+					"name": "fechas"
+				},
+				{
+					"name": "initCap"
+				},
+				{
+					"name": "estado"
+				},
+				{
+					"name": "null"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          despacho_id as string,",
+				"          recepcion_id as string,",
+				"          nro_lote as string,",
+				"          almacen_id as string,",
+				"          transportista_id as string,",
+				"          vehiculo_id as string,",
+				"          fecha_despacho as string,",
+				"          cantidad_despachada as string,",
+				"          centro_destino as string,",
+				"          estado as string,",
+				"          responsable as string,",
+				"          nro_guia_despacho as string,",
+				"          fecha_llegada as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'despachos',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(despacho_id = trim(despacho_id),",
+				"          recepcion_id = trim(recepcion_id),",
+				"          nro_lote = trim(nro_lote),",
+				"          almacen_id = trim(almacen_id),",
+				"          transportista_id = trim(transportista_id),",
+				"          vehiculo_id = trim(vehiculo_id),",
+				"          fecha_despacho = trim(fecha_despacho),",
+				"          cantidad_despachada = trim(cantidad_despachada),",
+				"          centro_destino = trim(centro_destino),",
+				"          estado = trim(estado),",
+				"          responsable = trim(responsable),",
+				"          nro_guia_despacho = trim(nro_guia_despacho),",
+				"          fecha_llegada = trim(fecha_llegada)) ~> trim",
+				"trim derive(fecha_despacho = coalesce(     toDate(fecha_despacho, 'yyyy-MM-dd'),     toDate(fecha_despacho, 'dd-MM-yyyy'),     toDate(fecha_despacho, 'MM/dd/yyyy'),     toDate(fecha_despacho, 'dd/MM/yyyy'),     toDate(fecha_despacho, 'yyyy/MM/dd') ),",
+				"          fecha_llegada = iif(isNull(fecha_llegada) || fecha_llegada == 'NULL' || trim(fecha_llegada) == '', toString(''), toString(coalesce(toDate(fecha_llegada, 'yyyy-MM-dd'), toDate(fecha_llegada, 'dd-MM-yyyy'), toDate(fecha_llegada, 'MM/dd/yyyy'), toDate(fecha_llegada, 'dd/MM/yyyy'), toDate(fecha_llegada, 'yyyy/MM/dd'))))) ~> fechas",
+				"fechas derive(centro_destino = initCap(centro_destino),",
+				"          estado = initCap(estado),",
+				"          responsable = initCap(responsable)) ~> initCap",
+				"initCap derive(estado = iif(isNull(estado) || estado == 'NULL' || trim(estado) == '', toString(''), iif(lower(trim(estado)) == 'despachaod' || lower(trim(estado)) == 'deespachado' || lower(trim(estado)) == 'depachado' || lower(trim(estado)) == 'despacchado' || lower(trim(estado)) == 'despachado', toString('Despachado'), toString(initCap(trim(estado)))))) ~> estado",
+				"estado derive(responsable = iif(isNull(responsable) || responsable == 'NULL' || trim(responsable) == '', toString(''), toString(trim(responsable)))) ~> null",
+				"null sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'despachos',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

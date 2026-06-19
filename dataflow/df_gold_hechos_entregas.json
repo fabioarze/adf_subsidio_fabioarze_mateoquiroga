@@ -1,0 +1,88 @@
+{
+	"name": "df_gold_hechos_entregas",
+	"properties": {
+		"folder": {
+			"name": "Gold"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_plata_sup_entregas",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_oro_Hechos_Entregas",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "aggregate1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          entrega_id as string,",
+				"          boleta_id as string,",
+				"          ci_beneficiaria as string,",
+				"          establecimiento_id as string,",
+				"          paquete_id as string,",
+				"          paquete_nombre as string,",
+				"          fecha_entrega as date,",
+				"          lote_produccion as string,",
+				"          peso_paquete_kg as string,",
+				"          fecha_proxima_entrega as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 aggregate(groupBy(entrega_id),",
+				"     ci_beneficiaria = first(ci_beneficiaria),",
+				"          paquete_id = first(paquete_id),",
+				"          fecha_entrega = first(fecha_entrega),",
+				"          boleta_id = first(boleta_id),",
+				"          establecimiento_id = first(establecimiento_id),",
+				"          paquete_nombre = first(paquete_nombre),",
+				"          lote_produccion = first(lote_produccion),",
+				"          peso_paquete_kg = first(peso_paquete_kg),",
+				"          fecha_proxima_entrega = first(fecha_proxima_entrega)) ~> aggregate1",
+				"aggregate1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id_entrega as integer,",
+				"          ci_beneficiaria as string,",
+				"          id_establecimiento as integer,",
+				"          id_paquete as integer,",
+				"          id_fecha as date,",
+				"          lote_produccion as string,",
+				"          peso_paquete_kg as decimal(5,2)",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          ci_beneficiaria,",
+				"          id_paquete = paquete_id,",
+				"          id_fecha = fecha_entrega,",
+				"          lote_produccion,",
+				"          peso_paquete_kg",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

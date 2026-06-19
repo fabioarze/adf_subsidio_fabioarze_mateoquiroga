@@ -1,0 +1,133 @@
+{
+	"name": "df_plata_segip_personas",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "limpiezaSegip"
+				},
+				{
+					"name": "upperYfechas"
+				},
+				{
+					"name": "iffNull"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          ci as string,",
+				"          nombres as string,",
+				"          apellido_paterno as string,",
+				"          apellido_materno as string,",
+				"          fecha_nacimiento as string,",
+				"          genero as string,",
+				"          estado_civil as string,",
+				"          ci_conyuge as string,",
+				"          numero_hijos as string,",
+				"          ci_padre as string,",
+				"          ci_madre as string,",
+				"          profesion as string,",
+				"          nivel_estudios as string,",
+				"          municipio_residencia as string,",
+				"          fecha_emision as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'segip_personas',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(ci = initCap(trim(ci)),",
+				"          nombres = initCap(trim(nombres)),",
+				"          apellido_paterno = initCap(trim(apellido_paterno)),",
+				"          apellido_materno = initCap(trim(apellido_materno)),",
+				"          fecha_nacimiento = initCap(trim(fecha_nacimiento)),",
+				"          genero = initCap(trim(genero)),",
+				"          estado_civil = initCap(trim(estado_civil)),",
+				"          ci_conyuge = initCap(trim(ci_conyuge)),",
+				"          numero_hijos = initCap(trim(numero_hijos)),",
+				"          ci_padre = initCap(trim(ci_padre)),",
+				"          ci_madre = initCap(trim(ci_madre)),",
+				"          profesion = initCap(trim(profesion)),",
+				"          nivel_estudios = initCap(trim(nivel_estudios)),",
+				"          municipio_residencia = initCap(trim(municipio_residencia)),",
+				"          fecha_emision = initCap(trim(fecha_emision))) ~> limpiezaSegip",
+				"limpiezaSegip derive(ci = trim(upper(ci)),",
+				"          ci_conyuge = trim(upper(ci_conyuge)),",
+				"          ci_padre = trim(upper(ci_padre)),",
+				"          ci_madre = trim(upper(ci_madre)),",
+				"          fecha_nacimiento = coalesce(toDate(fecha_nacimiento, 'yyyy/MM/dd'), toDate(fecha_nacimiento, 'yyyy-MM-dd'), toDate(fecha_nacimiento, 'MM/dd/yyyy'), toDate(fecha_nacimiento, 'dd/MM/yyyy')),",
+				"          fecha_emision = coalesce(toDate(fecha_emision, 'yyyy/MM/dd'), toDate(fecha_emision, 'yyyy-MM-dd'), toDate(fecha_emision, 'MM/dd/yyyy'), toDate(fecha_emision, 'dd/MM/yyyy'))) ~> upperYfechas",
+				"upperYfechas derive(ci_conyuge = iif(isNull(ci_conyuge), toString(''), toString(trim(ci_conyuge))),",
+				"          numero_hijos = iif(isNull(numero_hijos) || numero_hijos == 'NULL', toString(''), toString(numero_hijos)),",
+				"          ci_padre = iif(isNull(ci_padre), toString(''), toString(trim(ci_padre))),",
+				"          ci_madre = iif(isNull(ci_madre), toString(''), toString(trim(ci_madre))),",
+				"          profesion = iif(isNull(profesion) || profesion == 'NULL' || trim(profesion) == '', toString('Sin profesion'), toString(initCap(trim(profesion))))) ~> iffNull",
+				"iffNull window(over(ci),",
+				"     asc(ci, true),",
+				"     Fila = rowNumber()) ~> window1",
+				"window1 filter(Fila == 1) ~> filter1",
+				"filter1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'segip_personas',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     truncate: true,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          ci,",
+				"          nombres,",
+				"          apellido_paterno,",
+				"          apellido_materno,",
+				"          fecha_nacimiento,",
+				"          genero,",
+				"          estado_civil,",
+				"          ci_conyuge,",
+				"          numero_hijos,",
+				"          ci_padre,",
+				"          ci_madre,",
+				"          profesion,",
+				"          nivel_estudios,",
+				"          municipio_residencia,",
+				"          fecha_emision",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

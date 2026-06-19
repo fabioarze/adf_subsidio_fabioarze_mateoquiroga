@@ -1,0 +1,104 @@
+{
+	"name": "df_plata_bja_pagos",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "initCap"
+				},
+				{
+					"name": "ciBeneficiaria"
+				},
+				{
+					"name": "fechaPago"
+				},
+				{
+					"name": "null"
+				},
+				{
+					"name": "trim"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          pago_id as string,",
+				"          ci_beneficiaria as string,",
+				"          concepto_pago as string,",
+				"          monto_bs as string,",
+				"          fecha_pago as string,",
+				"          estado_pago as string,",
+				"          canal_pago as string,",
+				"          nro_comprobante as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'bja_pagos',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"trim derive(concepto_pago = initCap(concepto_pago),",
+				"          estado_pago = initCap(estado_pago),",
+				"          canal_pago = initCap(canal_pago)) ~> initCap",
+				"initCap derive(ci_beneficiaria = concat(     replace(regexReplace(regexReplace(trim(ci_beneficiaria), '[a-zA-Z]', ''), '-', ''), ' ', ''),     upper(regexReplace(trim(ci_beneficiaria), '[0-9\\\\s\\\\-]', '')) )) ~> ciBeneficiaria",
+				"ciBeneficiaria derive(fecha_pago = coalesce(     toDate(fecha_pago, 'yyyy-MM-dd'),     toDate(fecha_pago, 'dd-MM-yyyy'),     toDate(fecha_pago, 'MM/dd/yyyy'),     toDate(fecha_pago, 'dd/MM/yyyy'),     toDate(fecha_pago, 'yyyy/MM/dd') )) ~> fechaPago",
+				"fechaPago derive(nro_comprobante = iif(isNull(nro_comprobante) || nro_comprobante == 'NULL' || trim(nro_comprobante) == '', toString(''), toString(trim(nro_comprobante))),",
+				"          canal_pago = iif(isNull(canal_pago) || canal_pago == 'NULL' || trim(canal_pago) == '', toString(''), toString(trim(canal_pago)))) ~> null",
+				"source1 derive(pago_id = trim(pago_id),",
+				"          ci_beneficiaria = trim(ci_beneficiaria),",
+				"          concepto_pago = trim(concepto_pago),",
+				"          monto_bs = trim(monto_bs),",
+				"          fecha_pago = trim(fecha_pago),",
+				"          estado_pago = trim(estado_pago),",
+				"          canal_pago = trim(canal_pago),",
+				"          nro_comprobante = trim(nro_comprobante)) ~> trim",
+				"null window(over(pago_id),",
+				"     asc(pago_id, true),",
+				"     Fila = rowNumber()) ~> window1",
+				"window1 filter(Fila == 1) ~> filter1",
+				"filter1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'bja_pagos',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     truncate: true,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

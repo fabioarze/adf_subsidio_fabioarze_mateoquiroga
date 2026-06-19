@@ -1,0 +1,90 @@
+{
+	"name": "df_plata_bja_establecimientos_salud",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "trim"
+				},
+				{
+					"name": "departamento"
+				},
+				{
+					"name": "initCap"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          establecimiento_id as string,",
+				"          codigo_snis as string,",
+				"          nombre as string,",
+				"          tipo as string,",
+				"          nivel_atencion as string,",
+				"          municipio as string,",
+				"          departamento as string,",
+				"          red_salud as string,",
+				"          estado as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'establecimientos_salud',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(establecimiento_id = trim(establecimiento_id),",
+				"          codigo_snis = trim(codigo_snis),",
+				"          nombre = trim(nombre),",
+				"          tipo = trim(tipo),",
+				"          nivel_atencion = trim(nivel_atencion),",
+				"          municipio = trim(municipio),",
+				"          departamento = trim(departamento),",
+				"          red_salud = trim(red_salud),",
+				"          estado = trim(estado)) ~> trim",
+				"trim derive(departamento = iif(isNull(departamento) || departamento == 'NULL' || trim(departamento) == '', toString(''), iif(lower(trim(departamento)) == 'cb' || lower(trim(departamento)) == 'cochabamba', toString('Cochabamba'), iif(lower(trim(departamento)) == 'lp' || lower(trim(departamento)) == 'la paz', toString('La Paz'), iif(lower(trim(departamento)) == 'sc' || lower(trim(departamento)) == 'santa cruz', toString('Santa Cruz'), iif(lower(trim(departamento)) == 'or' || lower(trim(departamento)) == 'oruro', toString('Oruro'), iif(lower(trim(departamento)) == 'pt' || lower(trim(departamento)) == 'potosi' || lower(trim(departamento)) == 'potosí', toString('Potosí'), iif(lower(trim(departamento)) == 'tj' || lower(trim(departamento)) == 'tarija', toString('Tarija'), iif(lower(trim(departamento)) == 'ch' || lower(trim(departamento)) == 'chuquisaca', toString('Chuquisaca'), iif(lower(trim(departamento)) == 'be' || lower(trim(departamento)) == 'bn' || lower(trim(departamento)) == 'beni', toString('Beni'), iif(lower(trim(departamento)) == 'pd' || lower(trim(departamento)) == 'pando', toString('Pando'), toString(initCap(trim(departamento)))))))))))))) ~> departamento",
+				"departamento derive(nombre = initCap(nombre),",
+				"          tipo = initCap(tipo),",
+				"          nivel_atencion = initCap(nivel_atencion),",
+				"          municipio = initCap(municipio),",
+				"          departamento = initCap(departamento),",
+				"          red_salud = initCap(red_salud),",
+				"          estado = initCap(estado)) ~> initCap",
+				"initCap sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'establecimientos_salud',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

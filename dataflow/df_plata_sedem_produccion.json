@@ -1,0 +1,115 @@
+{
+	"name": "df_plata_sedem_produccion",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "trim"
+				},
+				{
+					"name": "initCap"
+				},
+				{
+					"name": "fechas"
+				},
+				{
+					"name": "estado"
+				},
+				{
+					"name": "responsable"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          produccion_id as string,",
+				"          empresa_id as string,",
+				"          planta_id as string,",
+				"          producto_id as string,",
+				"          nro_lote as string,",
+				"          fecha_produccion as string,",
+				"          cantidad as string,",
+				"          unidad as string,",
+				"          turno as string,",
+				"          responsable as string,",
+				"          costo_produccion as string,",
+				"          estado as string,",
+				"          fecha_vencimiento as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'sedem_produccion',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(produccion_id = trim(produccion_id),",
+				"          empresa_id = trim(empresa_id),",
+				"          planta_id = trim(planta_id),",
+				"          producto_id = trim(producto_id),",
+				"          nro_lote = trim(nro_lote),",
+				"          fecha_produccion = trim(fecha_produccion),",
+				"          cantidad = trim(cantidad),",
+				"          unidad = trim(unidad),",
+				"          turno = trim(turno),",
+				"          responsable = trim(responsable),",
+				"          costo_produccion = trim(costo_produccion),",
+				"          estado = trim(estado),",
+				"          fecha_vencimiento = trim(fecha_vencimiento)) ~> trim",
+				"trim derive(unidad = initCap(unidad),",
+				"          turno = initCap(turno),",
+				"          responsable = initCap(responsable),",
+				"          estado = initCap(estado)) ~> initCap",
+				"initCap derive(fecha_produccion = coalesce(     toDate(fecha_produccion, 'yyyy-MM-dd'),     toDate(fecha_produccion, 'dd-MM-yyyy'),     toDate(fecha_produccion, 'MM/dd/yyyy'),     toDate(fecha_produccion, 'dd/MM/yyyy'),     toDate(fecha_produccion, 'yyyy/MM/dd') ),",
+				"          fecha_vencimiento = iif(isNull(fecha_vencimiento) || fecha_vencimiento == 'NULL' || trim(fecha_vencimiento) == '', toString(''), toString(coalesce(toDate(fecha_vencimiento, 'yyyy-MM-dd'), toDate(fecha_vencimiento, 'dd-MM-yyyy'), toDate(fecha_vencimiento, 'MM/dd/yyyy'), toDate(fecha_vencimiento, 'dd/MM/yyyy'), toDate(fecha_vencimiento, 'yyyy/MM/dd'))))) ~> fechas",
+				"fechas derive(estado = iif(isNull(estado) || estado == 'NULL' || trim(estado) == '', toString(''), iif(lower(trim(estado)) == 'aproobado' || lower(trim(estado)) == 'aprrobado' || lower(trim(estado)) == 'aproado' || lower(trim(estado)) == 'aprobaado' || lower(trim(estado)) == 'aprobado', toString('Aprobado'), toString(initCap(trim(estado)))))) ~> estado",
+				"estado derive(responsable = iif(isNull(responsable) || responsable == 'NULL' || trim(responsable) == '', toString(''), toString(initCap(trim(replace(replace(lower(responsable), 'tec.luis', 'Tec. Luis'), 'in.g', 'Ing.')))))) ~> responsable",
+				"responsable window(over(produccion_id),",
+				"     asc(produccion_id, true),",
+				"     Fila = rowNumber()) ~> window1",
+				"window1 filter(Fila == 1) ~> filter1",
+				"filter1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'sedem_produccion',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     truncate: true,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

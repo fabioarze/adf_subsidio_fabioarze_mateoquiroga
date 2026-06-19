@@ -1,0 +1,82 @@
+{
+	"name": "df_plata_sup_boletas",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "trim"
+				},
+				{
+					"name": "ci"
+				},
+				{
+					"name": "fechaEmision"
+				},
+				{
+					"name": "initCap"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          boleta_id as string,",
+				"          control_id as string,",
+				"          ci_beneficiaria as string,",
+				"          nro_boleta as string,",
+				"          fecha_emision as string,",
+				"          estado as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'boletas',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(boleta_id = trim(boleta_id),",
+				"          control_id = trim(control_id),",
+				"          ci_beneficiaria = trim(ci_beneficiaria),",
+				"          nro_boleta = trim(nro_boleta),",
+				"          fecha_emision = trim(fecha_emision),",
+				"          estado = trim(estado)) ~> trim",
+				"trim derive(ci_beneficiaria = concat(     replace(regexReplace(regexReplace(trim(ci_beneficiaria), '[a-zA-Z]', ''), '-', ''), ' ', ''),     upper(regexReplace(trim(ci_beneficiaria), '[0-9\\\\s\\\\-]', '')) )) ~> ci",
+				"ci derive(fecha_emision = coalesce(     toDate(fecha_emision, 'yyyy-MM-dd'),     toDate(fecha_emision, 'dd-MM-yyyy'),     toDate(fecha_emision, 'MM/dd/yyyy'),     toDate(fecha_emision, 'dd/MM/yyyy'),     toDate(fecha_emision, 'yyyy/MM/dd') )) ~> fechaEmision",
+				"fechaEmision derive(estado = initCap(estado)) ~> initCap",
+				"initCap sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'boletas',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

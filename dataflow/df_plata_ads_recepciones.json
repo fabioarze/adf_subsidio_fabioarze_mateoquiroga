@@ -1,0 +1,120 @@
+{
+	"name": "df_plata_ads_recepciones",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "trim"
+				},
+				{
+					"name": "fechas"
+				},
+				{
+					"name": "initCap"
+				},
+				{
+					"name": "condicion"
+				},
+				{
+					"name": "estado"
+				},
+				{
+					"name": "null"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          recepcion_id as string,",
+				"          nro_lote as string,",
+				"          almacen_id as string,",
+				"          transportista_id as string,",
+				"          vehiculo_id as string,",
+				"          fecha_recepcion as string,",
+				"          cantidad_recibida as string,",
+				"          unidad as string,",
+				"          condicion as string,",
+				"          estado as string,",
+				"          responsable as string,",
+				"          nro_guia_remision as string,",
+				"          temperatura_llegada as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'recepciones',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(recepcion_id = trim(recepcion_id),",
+				"          nro_lote = trim(nro_lote),",
+				"          almacen_id = trim(almacen_id),",
+				"          transportista_id = trim(transportista_id),",
+				"          vehiculo_id = trim(vehiculo_id),",
+				"          fecha_recepcion = trim(fecha_recepcion),",
+				"          cantidad_recibida = trim(cantidad_recibida),",
+				"          unidad = trim(unidad),",
+				"          condicion = trim(condicion),",
+				"          estado = trim(estado),",
+				"          responsable = trim(responsable),",
+				"          nro_guia_remision = trim(nro_guia_remision),",
+				"          temperatura_llegada = trim(temperatura_llegada)) ~> trim",
+				"trim derive(fecha_recepcion = iif(isNull(fecha_recepcion) || fecha_recepcion == 'NULL' || trim(fecha_recepcion) == '', toString(''), toString(coalesce(toDate(fecha_recepcion, 'yyyy-MM-dd'), toDate(fecha_recepcion, 'dd-MM-yyyy'), toDate(fecha_recepcion, 'MM/dd/yyyy'), toDate(fecha_recepcion, 'dd/MM/yyyy'), toDate(fecha_recepcion, 'yyyy/MM/dd'))))) ~> fechas",
+				"fechas derive(estado = initCap(estado),",
+				"          unidad = initCap(unidad),",
+				"          condicion = initCap(condicion),",
+				"          responsable = initCap(responsable)) ~> initCap",
+				"initCap derive(condicion = iif(isNull(condicion) || condicion == 'NULL' || trim(condicion) == '', toString('Regular'), iif(lower(trim(condicion)) == 'buno' || lower(trim(condicion)) == 'beno' || lower(trim(condicion)) == 'buenno' || lower(trim(condicion)) == 'bueeno', toString('Bueno'), iif(lower(trim(condicion)) == 'reegular', toString('Regular'), toString(initCap(trim(condicion))))))) ~> condicion",
+				"condicion derive(estado = iif(isNull(estado) || estado == 'NULL' || trim(estado) == '', toString('Recibido'), iif(lower(trim(estado)) == 'recibiddo' || lower(trim(estado)) == 'reccibido' || lower(trim(estado)) == 'recibiido' || lower(trim(estado)) == 'recibido', toString('Recibido'), iif(lower(trim(estado)) == 'recibdo con observación' || lower(trim(estado)) == 'recibdo con observacion' || lower(trim(estado)) == 'recibido con observación' || lower(trim(estado)) == 'recibido con observacion', toString('Recibido Con Observación'), toString(initCap(trim(estado))))))) ~> estado",
+				"estado derive(responsable = iif(isNull(responsable) || responsable == 'NULL' || trim(responsable) == '', toString(''), toString(trim(responsable))),",
+				"          temperatura_llegada = iif(isNull(temperatura_llegada) || temperatura_llegada == 'NULL' || trim(temperatura_llegada) == '', toString(''), toString(trim(temperatura_llegada))),",
+				"          nro_guia_remision = iif(isNull(nro_guia_remision) || nro_guia_remision == 'NULL' || trim(nro_guia_remision) == '', toString(''), toString(trim(nro_guia_remision)))) ~> null",
+				"null window(over(recepcion_id),",
+				"     asc(recepcion_id, true),",
+				"     Fila = rowNumber()) ~> window1",
+				"window1 filter(Fila == 1) ~> filter1",
+				"filter1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'recepciones',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     truncate: true,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

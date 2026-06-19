@@ -1,0 +1,63 @@
+{
+	"name": "Ds_oro_dim_persona",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Destino_DataWareH",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "id_persona",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ci",
+				"type": "nvarchar"
+			},
+			{
+				"name": "nombres",
+				"type": "nvarchar"
+			},
+			{
+				"name": "apellido_paterno",
+				"type": "nvarchar"
+			},
+			{
+				"name": "apellido_materno",
+				"type": "nvarchar"
+			},
+			{
+				"name": "fecha_nacimiento",
+				"type": "date"
+			},
+			{
+				"name": "genero",
+				"type": "nvarchar"
+			},
+			{
+				"name": "estado_civil",
+				"type": "nvarchar"
+			},
+			{
+				"name": "profesion",
+				"type": "nvarchar"
+			},
+			{
+				"name": "nivel_estudios",
+				"type": "nvarchar"
+			},
+			{
+				"name": "municipio_residencia",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "oro",
+			"table": "Dim_Persona"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

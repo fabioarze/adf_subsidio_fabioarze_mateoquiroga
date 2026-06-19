@@ -1,0 +1,51 @@
+{
+	"name": "ds_oro_Hechos_Entregas",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Destino_DataWareH",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "id_entrega",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ci_beneficiaria",
+				"type": "nvarchar"
+			},
+			{
+				"name": "id_establecimiento",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "id_paquete",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "id_fecha",
+				"type": "date"
+			},
+			{
+				"name": "lote_produccion",
+				"type": "nvarchar"
+			},
+			{
+				"name": "peso_paquete_kg",
+				"type": "decimal",
+				"precision": 5,
+				"scale": 2
+			}
+		],
+		"typeProperties": {
+			"schema": "oro",
+			"table": "Hechos_Entregas"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

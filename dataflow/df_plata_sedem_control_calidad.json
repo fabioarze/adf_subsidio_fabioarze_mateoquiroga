@@ -1,0 +1,99 @@
+{
+	"name": "df_plata_sedem_control_calidad",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "initCap"
+				},
+				{
+					"name": "fechas"
+				},
+				{
+					"name": "null"
+				},
+				{
+					"name": "trim"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          control_id as string,",
+				"          produccion_id as string,",
+				"          nro_lote as string,",
+				"          nro_control as string,",
+				"          fecha_control as string,",
+				"          parametro as string,",
+				"          valor_medido as string,",
+				"          unidad_medida as string,",
+				"          valor_minimo as string,",
+				"          valor_maximo as string,",
+				"          cumple as string,",
+				"          inspector as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'sedem_control_calidad',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"trim derive(parametro = initCap(unidad_medida),",
+				"          unidad_medida = initCap(unidad_medida),",
+				"          cumple = initCap(cumple),",
+				"          inspector = initCap(inspector)) ~> initCap",
+				"initCap derive(fecha_control = coalesce(     toDate(fecha_control, 'yyyy-MM-dd'),     toDate(fecha_control, 'dd-MM-yyyy'),     toDate(fecha_control, 'MM/dd/yyyy'),     toDate(fecha_control, 'dd/MM/yyyy'),     toDate(fecha_control, 'yyyy/MM/dd') )) ~> fechas",
+				"fechas derive(cumple = iif(isNull(cumple) || cumple == 'NULL' || trim(cumple) == '', toString('Sí'), iif(lower(trim(cumple)) == 'si' || lower(trim(cumple)) == 'sí', toString('Sí'), toString(initCap(trim(cumple))))),",
+				"          inspector = iif(isNull(inspector) || inspector == 'NULL' || trim(inspector) == '', toString(''), toString(trim(inspector))),",
+				"          valor_medido = iif(isNull(valor_medido) || valor_medido == 'NULL' || trim(valor_medido) == '', toString(''), toString(trim(valor_medido)))) ~> null",
+				"source1 derive(control_id = trim(control_id),",
+				"          produccion_id = trim(produccion_id),",
+				"          nro_lote = trim(nro_lote),",
+				"          nro_control = trim(nro_control),",
+				"          fecha_control = trim(fecha_control),",
+				"          parametro = trim(parametro),",
+				"          valor_medido = trim(valor_medido),",
+				"          unidad_medida = trim(unidad_medida),",
+				"          valor_minimo = trim(valor_minimo),",
+				"          valor_maximo = trim(valor_maximo),",
+				"          cumple = trim(cumple),",
+				"          inspector = trim(inspector)) ~> trim",
+				"null sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'sedem_control_calidad',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

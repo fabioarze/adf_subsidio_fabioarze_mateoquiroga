@@ -1,0 +1,84 @@
+{
+	"name": "df_gold_hechos_produccion_sedem",
+	"properties": {
+		"folder": {
+			"name": "Gold"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_plata_sedem_produccion",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_oro_Hechos_Produccion_Sedem",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "aggregate1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          produccion_id as integer,",
+				"          empresa_id as integer,",
+				"          planta_id as integer,",
+				"          producto_id as integer,",
+				"          nro_lote as string,",
+				"          fecha_produccion as date,",
+				"          cantidad as decimal(10,2),",
+				"          unidad as string,",
+				"          turno as string,",
+				"          responsable as string,",
+				"          costo_produccion as decimal(12,2),",
+				"          estado as string,",
+				"          fecha_vencimiento as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 aggregate(groupBy(produccion_id),",
+				"     empresa_id = first(empresa_id),",
+				"          fecha_produccion = first(fecha_produccion),",
+				"          cantidad = first(cantidad),",
+				"          producto_id = first(producto_id)) ~> aggregate1",
+				"aggregate1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id_movimiento as integer,",
+				"          id_empresa_sedem as integer,",
+				"          id_fecha as date,",
+				"          tipo_movimiento as string,",
+				"          cantidad_unidades as integer,",
+				"          monto_estimado_bs as decimal(10,2),",
+				"          lote_referencia as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          id_empresa_sedem = empresa_id,",
+				"          id_fecha = fecha_produccion,",
+				"          cantidad_unidades = cantidad",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

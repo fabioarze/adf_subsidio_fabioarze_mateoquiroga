@@ -1,0 +1,90 @@
+{
+	"name": "df_plata_bja_partos",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "ciMadre"
+				},
+				{
+					"name": "initCap"
+				},
+				{
+					"name": "tipoParto"
+				},
+				{
+					"name": "fechaParto"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          parto_id as string,",
+				"          ci_madre as string,",
+				"          ci_recien_nacido as string,",
+				"          establecimiento_id as string,",
+				"          fecha_parto as string,",
+				"          tipo_parto as string,",
+				"          peso_nacimiento_kg as string,",
+				"          talla_nacimiento_cm as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'bja_partos',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(ci_madre = concat(     regexReplace(regexReplace(trim(ci_madre), '[a-zA-Z]', ''), '-', ''),     upper(regexReplace(trim(ci_madre), '[0-9\\\\-]', '')) )) ~> ciMadre",
+				"ciMadre derive(tipo_parto = initCap(tipo_parto)) ~> initCap",
+				"initCap derive(tipo_parto = iif(isNull(tipo_parto) || tipo_parto == 'NULL' || trim(tipo_parto) == '', toString(''), iif(lower(trim(tipo_parto)) == 'ntural' || lower(trim(tipo_parto)) == 'nautral' || lower(trim(tipo_parto)) == 'naturl' || lower(trim(tipo_parto)) == 'nattural', toString('Natural'), iif(lower(trim(tipo_parto)) == 'cessárea' || lower(trim(tipo_parto)) == 'cessarea' || lower(trim(tipo_parto)) == 'cesarea' || lower(trim(tipo_parto)) == 'cesárae' || lower(trim(tipo_parto)) == 'cesárrea' || lower(trim(tipo_parto)) == 'cesárea', toString('Cesárea'), toString(initCap(trim(tipo_parto))))))) ~> tipoParto",
+				"tipoParto derive(fecha_parto = coalesce(     toDate(fecha_parto, 'yyyy-MM-dd'),     toDate(fecha_parto, 'dd-MM-yyyy'),     toDate(fecha_parto, 'MM/dd/yyyy'),     toDate(fecha_parto, 'dd/MM/yyyy'),     toDate(fecha_parto, 'yyyy/MM/dd') )) ~> fechaParto",
+				"fechaParto window(over(parto_id),",
+				"     asc(parto_id, true),",
+				"     Fila = rowNumber()) ~> window1",
+				"window1 filter(Fila == 1) ~> filter1",
+				"filter1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'bja_partos',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     truncate: true,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

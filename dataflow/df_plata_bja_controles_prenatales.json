@@ -1,0 +1,91 @@
+{
+	"name": "df_plata_bja_controles_prenatales",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "ciBeneficiaria"
+				},
+				{
+					"name": "initCap"
+				},
+				{
+					"name": "Null"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          control_prenatal_id as string,",
+				"          ci_beneficiaria as string,",
+				"          establecimiento_id as string,",
+				"          nro_control as string,",
+				"          fecha_control as string,",
+				"          semana_gestacion as string,",
+				"          peso_madre_kg as string,",
+				"          presion_arterial as string,",
+				"          resultado as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'bja_controles_prenatales',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(ci_beneficiaria = concat(     regexReplace(regexReplace(trim(ci_beneficiaria), '[a-zA-Z]', ''), '-', ''),     upper(regexReplace(trim(ci_beneficiaria), '[0-9\\\\-]', '')) )) ~> ciBeneficiaria",
+				"ciBeneficiaria derive(resultado = initCap(trim(resultado))) ~> initCap",
+				"initCap derive(resultado = iif(isNull(resultado) || resultado == 'NULL' || trim(resultado) == '' || lower(trim(resultado)) == 'nrmal', toString('Normal'), toString(initCap(trim(resultado)))),",
+				"          fecha_control = coalesce(toDate(fecha_control, 'yyyy/MM/dd'), toDate(fecha_control, 'yyyy-MM-dd'), toDate(fecha_control, 'MM/dd/yyyy'), toDate(fecha_control, 'dd/MM/yyyy')),",
+				"          semana_gestacion = iif(isNull(semana_gestacion) || semana_gestacion == 'NULL' || trim(semana_gestacion) == '', toInteger(null()), toInteger(trim(semana_gestacion))),",
+				"          peso_madre_kg = iif(isNull(peso_madre_kg) || peso_madre_kg == 'NULL' || trim(peso_madre_kg) == '', toDecimal(null()), toDecimal(trim(peso_madre_kg), 5, 2)),",
+				"          presion_arterial = iif(isNull(presion_arterial) || presion_arterial == 'NULL' || trim(presion_arterial) == '', toString(''), toString(trim(presion_arterial)))) ~> Null",
+				"Null window(over(control_prenatal_id),",
+				"     asc(control_prenatal_id, true),",
+				"     Fila = rowNumber()) ~> window1",
+				"window1 filter(Fila == 1) ~> filter1",
+				"filter1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'bja_controles_prenatales',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     truncate: true,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}

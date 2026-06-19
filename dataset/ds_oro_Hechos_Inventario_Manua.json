@@ -1,0 +1,51 @@
+{
+	"name": "ds_oro_Hechos_Inventario_Manua",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Destino_DataWareH",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "id_movimiento",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "id_empresa_sedem",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "id_fecha",
+				"type": "date"
+			},
+			{
+				"name": "tipo_movimiento",
+				"type": "nvarchar"
+			},
+			{
+				"name": "cantidad_unidades",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "monto_estimado_bs",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "lote_referencia",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "oro",
+			"table": "Hechos_Movimientos_Sedem"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

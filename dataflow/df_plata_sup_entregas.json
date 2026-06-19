@@ -1,0 +1,91 @@
+{
+	"name": "df_plata_sup_entregas",
+	"properties": {
+		"folder": {
+			"name": "Silver"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Destino_DataWareH",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "trim"
+				},
+				{
+					"name": "ci"
+				},
+				{
+					"name": "fechas"
+				},
+				{
+					"name": "null"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          entrega_id as string,",
+				"          boleta_id as string,",
+				"          ci_beneficiaria as string,",
+				"          establecimiento_id as string,",
+				"          paquete_id as string,",
+				"          paquete_nombre as string,",
+				"          fecha_entrega as string,",
+				"          lote_produccion as string,",
+				"          peso_paquete_kg as string,",
+				"          fecha_proxima_entrega as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'bronze',",
+				"     tableName: 'entregas',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"source1 derive(entrega_id = trim(entrega_id),",
+				"          boleta_id = trim(boleta_id),",
+				"          ci_beneficiaria = trim(ci_beneficiaria),",
+				"          establecimiento_id = trim(establecimiento_id),",
+				"          paquete_id = trim(paquete_id),",
+				"          paquete_nombre = trim(paquete_nombre),",
+				"          fecha_entrega = trim(fecha_entrega),",
+				"          lote_produccion = trim(lote_produccion),",
+				"          peso_paquete_kg = trim(peso_paquete_kg),",
+				"          fecha_proxima_entrega = trim(fecha_proxima_entrega)) ~> trim",
+				"trim derive(ci_beneficiaria = concat(     replace(regexReplace(regexReplace(trim(ci_beneficiaria), '[a-zA-Z]', ''), '-', ''), ' ', ''),     upper(regexReplace(trim(ci_beneficiaria), '[0-9\\\\s\\\\-]', '')) )) ~> ci",
+				"ci derive(fecha_entrega = coalesce(     toDate(fecha_entrega, 'yyyy-MM-dd'),     toDate(fecha_entrega, 'dd-MM-yyyy'),     toDate(fecha_entrega, 'MM/dd/yyyy'),     toDate(fecha_entrega, 'dd/MM/yyyy'),     toDate(fecha_entrega, 'yyyy/MM/dd') ),",
+				"          fecha_proxima_entrega = coalesce(     toDate(fecha_proxima_entrega, 'yyyy-MM-dd'),     toDate(fecha_proxima_entrega, 'dd-MM-yyyy'),     toDate(fecha_proxima_entrega, 'MM/dd/yyyy'),     toDate(fecha_proxima_entrega, 'dd/MM/yyyy'),     toDate(fecha_proxima_entrega, 'yyyy/MM/dd') )) ~> fechas",
+				"fechas derive(lote_produccion = iif(isNull(lote_produccion) || lote_produccion == 'NULL' || trim(lote_produccion) == '', toString(''), toString(trim(lote_produccion)))) ~> null",
+				"null sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'silver',",
+				"     tableName: 'entregas',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1"
+			]
+		}
+	}
+}
